@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "training-megakernel"
+version = "0.1.0"
+description = "Train Qwen3-8B-width models on eight H100s with one resident cooperative CUfunction per GPU"
+readme = "README.md"
+license = "MIT"
+requires-python = "==3.12.*"
+# Exact pins only for the packages the kernel code is written against.
+# FlashAttention 4 (commit 890f238) is one of them, but it is installed
+# separately with --no-deps; see the README.
+dependencies = [
+  "cuda-bindings>=13.3.1",
+  "nvidia-cutlass-dsl[cu13]==4.6.0",
+  "torch>=2.14.0",
+]
+
+[project.optional-dependencies]
+build = [
+  "quack-kernels==0.6.0",
+]
+dclm = [
+  "pyarrow>=24.0.0",
+  "safetensors>=0.8.0",
+  "tokenizers>=0.22.2",
+]
+logging = ["wandb>=0.28.0"]
+
+[project.scripts]
+training-megakernel-check = "training_megakernel.environment:main"
+training-megakernel-smoke = "training_megakernel.module_smoke:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [
+  "kernel/program",
+]

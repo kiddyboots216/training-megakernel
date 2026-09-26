@@ -1,0 +1,50 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+build/
+builds/
+dist/
+runs/
+checkpoints/
+*.egg-info/
+
+# Local configuration and service state.
+.env*
+wandb/
+.wandb/
+
+# Logs, test coverage, and profiler output.
+*.log
+logs/
+.coverage
+.coverage.*
+coverage/
+htmlcov/
+profiles/
+profiler/
+*.nsys-rep
+*.ncu-rep
+*.qdrep
+
+# Local datasets, token shards, model snapshots, and training output.
+/data/
+/datasets/
+/models/
+/model-snapshots/
+/token-shards/
+/outputs/
+/artifacts/
+*.safetensors
+*.ckpt
+*.pth
+*.pt
+
+# Compiled bundles are GitHub Release assets, never source-tree contents.
+*.o
+*.cubin
+*.fatbin
+*.ptx
+*.so
+*.a

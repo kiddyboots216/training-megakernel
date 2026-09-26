@@ -1,0 +1,10 @@
+include README.md
+include LICENSE
+include THIRD_PARTY_NOTICES.md
+recursive-include LICENSES *.txt
+include pyproject.toml
+recursive-include examples/dclm *.md *.json *.py *.sh
+recursive-include kernel *.md *.py *.sh
+global-exclude *.py[cod]
+global-exclude __pycache__
+global-exclude image.o *.cubin *.fatbin *.ptx *.so *.a
