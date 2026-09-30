@@ -4,6 +4,10 @@ Train Qwen3-8B, or a model of Qwen3-8B's width with 2 to 82 layers, on eight
 H100s with one cooperative application CUfunction launch per GPU for an entire
 resident run.
 
+How it works, and how it was built, is written up in [Writing Training
+Megakernels without Writing Training
+Megakernels](https://kiddyboots216.github.io/megakernel/).
+
 Trained from the same random initialization on the same 1,000 steps of DCLM
 data, with the same AdamW settings, on the same node, the training megakernel
 finished in 68.8 minutes and Megatron-LM in 83.3: **1.21x the throughput,
@@ -13,6 +17,24 @@ average (Pearson correlation 0.9993), and their last 50 steps average within
 distributed optimizer, full activation recompute and Transformer Engine
 attention. Wall time runs from the first logged step to the last; it is one
 run per implementation.
+
+Per step, Megatron-LM's median is 4.98 s and the megakernel's 4.08 s, a ratio
+of 1.22. A factor of 1.13 of that is work Megatron-LM does and the megakernel
+does not (19.0 against 16.8 PFLOP per step, from activation recompute); the
+remaining 1.08 is how fast each program executes the work it has. These are
+intervals between consecutive log records, not device timings.
+
+A stronger baseline is a staged CUDA graph built from the same FlashAttention 4
+and Quack tile code: one captured graph per GPU replaying 3,837 kernel launches
+per step. Against it the megakernel is about 1% faster. One Qwen3-8B optimizer
+update on eight H100s, median of 50 iterations in both run orders:
+
+| Program | Step latency | Positions per second |
+|---|---|---|
+| Staged CUDA graph | 4,141 ms | 63,300 |
+| Megakernel | 4,092 ms | 64,100 |
+
+Positions count all 32,768 per GPU, summed over eight GPUs.
 
 Each rank enters one cooperative CUfunction that remains resident across
 optimizer steps. Inside that function, the GPU executes the complete forward
@@ -51,9 +73,11 @@ runs with about 3 GiB left per GPU:
 times are means over 100 steps (36 layers), 20 steps (40 and 41 layers at 32,768
 tokens) or 200 steps of the DCLM example, leaving out the one step that waited
 while a checkpoint was written. A checkpoint stores 12 bytes per optimizer
-element, 12.3 GB per GPU at 36 layers, and holds the step for as long as the
-disk takes to write it: about 2 to 3.5 minutes per 36-layer checkpoint on a
-local NVMe. Pretrained weights exist only for 36 layers; the example can train
+element, 12.3 GB per GPU at 36 layers. The grid streams it to the host
+through two 256 MiB pinned slots and holds the step until every rank's copy is
+on disk: 12 to 21 seconds per 36-layer checkpoint in our runs, the time of
+three to five steps. The device-side copy takes about a third of a second; the
+rest is host-side writing and agreement between the ranks. Pretrained weights exist only for 36 layers; the example can train
 other depths from random initialization.
 
 On the same batch, the step-1 gradient norm is within 0.14% of a Hugging Face
@@ -166,6 +190,20 @@ preflight's `--build` check confirms version `4.0.0b20.dev8+g890f238`.
 ```bash
 python -m compileall -q src examples kernel
 bash -n kernel/build.sh examples/dclm/*.sh
+```
+
+## Citation
+
+```bibtex
+@misc{panda2026megakernel,
+  author       = {Ashwinee Panda},
+  title        = {Writing Training Megakernels without Writing Training
+                  Megakernels},
+  howpublished = {\url{https://kiddyboots216.github.io/megakernel/}},
+  year         = {2026},
+  month        = {sep},
+  note         = {Blog post}
+}
 ```
 
 ## License
